@@ -1,0 +1,57 @@
+//===== Cope-RO Scripts ======================================
+// Global Drop Bonus System v1.4
+// 레벨 차이에 따른 두 단계 기본 확률, 보스/MVP 보정 적용
+-	script	Global_Drop_Bonus	-1,{
+    OnInit:
+        // 아이템 목록: [아이템ID, 수량, penalty chance, normal chance]
+        setarray .rewardList[0],
+            7539,  1,  5 , 20,   // Poring Coin  
+            7539, 1,  1, 5;   // HPC         
+        end;
+
+    OnNPCKillEvent:
+        if ( killedrid <= 0 ) end;
+
+        // 몹/플레이어 레벨 읽기
+        .@mobLevel        = getmonsterinfo( killedrid, MOB_LV );    // :contentReference[oaicite:0]{index=0}&#8203;:contentReference[oaicite:1]{index=1}
+        .@playerBaseLevel = BaseLevel;
+
+        // MVP·미니 보스 여부
+        .@isMobMvp      = getmonsterinfo( killedrid, MOB_MVPEXP ); // :contentReference[oaicite:2]{index=2}&#8203;:contentReference[oaicite:3]{index=3}
+        .@isMobMiniBoss = getmonsterinfo( killedrid, MOB_RACE );   // :contentReference[oaicite:4]{index=4}&#8203;:contentReference[oaicite:5]{index=5}
+
+        // 보정치 계산
+        .@boostChance = 0;
+        if ( .@isMobMvp > 0 ) {
+            .@boostChance = 5;
+        } else if ( .@isMobMiniBoss == Race_Boss ) {
+            .@boostChance = 3;
+        }
+
+        .@chanceValue = rand(100);
+        .@chanceAccumulator = 0;
+
+        for ( .@i = 0; .@i < getarraysize( .rewardList ); .@i += 3 ) {
+            if ( .@mobLevel < .@playerBaseLevel - 5 ) {
+                .@baseChance = .rewardList[ .@i + 2 ];   // 낮은 레벨 차이 → 5% | position 2 of list
+            } else {
+                .@baseChance = .rewardList[ .@i + 3 ];  // 높은 레벨 차이 → 20% | position 3 of list
+            }
+
+            // 최종 확률 = 기본 + 보정
+            .@finalChance = .@baseChance + .@boostChance;
+            .@chanceAccumulator += .@finalChance;
+
+            if ( .@chanceValue < .@chanceAccumulator ) {
+                getitem .rewardList[ .@i ], .rewardList[ .@i + 1 ];
+                dispbottom "You have obtained "
+                           + getitemname( .items[ .@i ] )
+                           + " x" + .items[ .@i + 1 ]
+                           + " from " + getmonsterinfo( killedrid, MOB_NAME )
+                           + " (Base:" + .@baseChance + "%, Boost:" + .@boostChance + "%).",
+                          0xFFFF66;
+                break;
+            }
+        }
+        end;
+}

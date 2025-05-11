@@ -1,0 +1,28 @@
+-	script	Attendance_System	-1,{
+OnInit:
+	.attendance_days = 20;
+	end;
+
+OnPCLoginEvent:
+	// Evita dar varias veces en el mismo día
+	if ( #last_attendance == gettime(6) ) end;
+	#last_attendance = gettime(6);
+
+	// Cuenta días consecutivos
+	if ( #last_attendance + 1 == gettime(6) )
+		#attendance_days++;
+	else
+		#attendance_days = 1;
+
+	// Da recompensas
+	switch (#attendance_days) {
+		case 1: getitem 501, 10; break;
+		case 2: getitem 502, 5; break;
+		case 3: getitem 503, 1; break;
+		// ...
+		default: getitem 504, 1; break;
+	}
+
+	dispbottom "Has recibido tu recompensa del día " + #attendance_days + "!";
+	end;
+}
